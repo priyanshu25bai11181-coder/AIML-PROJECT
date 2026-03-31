@@ -1,0 +1,144 @@
+import sys
+
+class TicTacToe:
+    def __init__(self):
+        """Initialize an empty board and set the players."""
+        self.board = [" "] * 9
+        self.human = "X"
+        self.ai = "O"
+
+    def print_board(self):
+        """Display the current board with indices for clarity."""
+        print("\n")
+        for i in range(0, 9, 3):
+            print(f"  {self.board[i]} | {self.board[i+1]} | {self.board[i+2]}")
+            if i < 6:
+                print("  ---------")
+        print("\n")
+
+    def available_moves(self):
+        """Return a list of indices of empty cells."""
+        return [i for i, spot in enumerate(self.board) if spot == " "]
+
+    def make_move(self, position, player):
+        """Place a player's mark on the board if the cell is empty."""
+        if self.board[position] == " ":
+            self.board[position] = player
+            return True
+        return False
+
+    def check_winner(self):
+        """Return the winning player ('X' or 'O') if any, else None."""
+        win_patterns = [
+            [0, 1, 2], [3, 4, 5], [6, 7, 8],  # rows
+            [0, 3, 6], [1, 4, 7], [2, 5, 8],  # columns
+            [0, 4, 8], [2, 4, 6]              # diagonals
+        ]
+        for pattern in win_patterns:
+            a, b, c = pattern
+            if self.board[a] == self.board[b] == self.board[c] != " ":
+                return self.board[a]
+        return None
+
+    def is_full(self):
+        """Check if the board is full."""
+        return " " not in self.board
+
+    def game_over(self):
+        """Return True if the game has ended (win or draw)."""
+        return self.check_winner() is not None or self.is_full()
+
+    def minimax(self, depth, is_maximizing, alpha, beta):
+        """
+        Minimax with Alpha-Beta pruning.
+        Returns the score of the current board state from the AI's perspective.
+        """
+        winner = self.check_winner()
+        if winner == self.ai:
+            return 1   # AI wins
+        elif winner == self.human:
+            return -1  # Human wins
+        elif self.is_full():
+            return 0   # Draw
+
+        if is_maximizing:
+            max_eval = -float("inf")
+            for move in self.available_moves():
+                self.make_move(move, self.ai)
+                eval = self.minimax(depth + 1, False, alpha, beta)
+                self.board[move] = " "  # undo move
+                max_eval = max(max_eval, eval)
+                alpha = max(alpha, eval)
+                if beta <= alpha:
+                    break  # prune
+            return max_eval
+        else:
+            min_eval = float("inf")
+            for move in self.available_moves():
+                self.make_move(move, self.human)
+                eval = self.minimax(depth + 1, True, alpha, beta)
+                self.board[move] = " "  # undo move
+                min_eval = min(min_eval, eval)
+                beta = min(beta, eval)
+                if beta <= alpha:
+                    break  # prune
+            return min_eval
+
+    def ai_move(self):
+        """Let AI choose the best move using minimax."""
+        best_score = -float("inf")
+        best_move = None
+        for move in self.available_moves():
+            self.make_move(move, self.ai)
+            score = self.minimax(0, False, -float("inf"), float("inf"))
+            self.board[move] = " "  # undo move
+            if score > best_score:
+                best_score = score
+                best_move = move
+        if best_move is not None:
+            self.make_move(best_move, self.ai)
+            print(f"AI (O) chooses {best_move + 1}.")
+        else:
+            # No moves available – should not happen if game is not over
+            pass
+
+    def play(self):
+        """Main game loop."""
+        print("Welcome to Tic-Tac-Toe!")
+        print("You are X, AI is O. You go first.\n")
+        self.print_board()
+
+        while not self.game_over():
+            # Human move
+            while True:
+                try:
+                    move = int(input("Your turn (X). Enter a number (1-9): ")) - 1
+                    if 0 <= move < 9 and self.make_move(move, self.human):
+                        break
+                    else:
+                        print("Invalid move. Try again.")
+                except ValueError:
+                    print("Please enter a number between 1 and 9.")
+
+            self.print_board()
+            if self.game_over():
+                break
+
+            # AI move
+            print("AI (O) is thinking...")
+            self.ai_move()
+            self.print_board()
+
+        # Game result
+        winner = self.check_winner()
+        if winner == self.human:
+            print("Congratulations! You won (unlikely).")
+        elif winner == self.ai:
+            print("AI wins! Better luck next time.")
+        else:
+            print("It's a draw! Good game.")
+
+if __name__ == "__main__":
+    game = TicTacToe()
+    game.play()
+    sys.exit(0)
